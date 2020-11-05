@@ -86,7 +86,7 @@ namespace Vostok.Clusterclient.Core.Modules
         }
 
         private IEnumerable<Uri> FilterReplicas(IEnumerable<Uri> replicas, IRequestContext context) 
-            => replicaFilters.Aggregate(replicas, (current, element) => element.Filter(current, context));
+            => replicaFilters.Aggregate(replicas, (urls, replicaFilter) => replicaFilter.Filter(urls, context));
 
         #region Logging
 
