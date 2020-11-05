@@ -50,8 +50,8 @@ namespace Vostok.Clusterclient.Core.Modules
                 return ClusterResult.ReplicasNotFound(context.Request);
             }
 
-            replicas = FilterReplicas(replicas, context);
-            if (replicas == null || replicas.Count == 0)
+            replicas = FilterReplicas(replicas, context).ToList();
+            if (replicas.Count == 0)
             {
                 LogReplicasNotFound(context);
                 return ClusterResult.ReplicasNotFound(context.Request);
@@ -85,17 +85,8 @@ namespace Vostok.Clusterclient.Core.Modules
             return new ClusterResult(resultStatus, replicaResults, selectedResponse, context.Request);
         }
 
-        private IList<Uri> FilterReplicas(IList<Uri> replicas, IRequestContext context)
-        {
-            foreach (var replicaFilter in replicaFilters)
-            {
-                replicas = replicaFilter.Filter(replicas, context);
-                if (replicas == null || replicas.Count == 0)
-                    return replicas;
-            }
-
-            return replicas;
-        }
+        private IEnumerable<Uri> FilterReplicas(IEnumerable<Uri> replicas, IRequestContext context) 
+            => replicaFilters.Aggregate(replicas, (current, element) => element.Filter(current, context));
 
         #region Logging
 
