@@ -6,7 +6,6 @@ using Vostok.Clusterclient.Core.Misc;
 using Vostok.Clusterclient.Core.Model;
 using Vostok.Clusterclient.Core.Ordering;
 using Vostok.Clusterclient.Core.Ordering.Storage;
-using Vostok.Clusterclient.Core.ReplicaFilter;
 using Vostok.Clusterclient.Core.Sending;
 using Vostok.Clusterclient.Core.Topology;
 using Vostok.Logging.Abstractions;
