@@ -20,7 +20,7 @@ namespace Vostok.Clusterclient.Core.Modules
         private readonly IReplicaStorageProvider storageProvider;
         private readonly IRequestSenderInternal requestSender;
         private readonly IClusterResultStatusSelector resultStatusSelector;
-        private readonly List<IReplicaFilter> replicaFilters;
+        private readonly List<IReplicaFilter> replicasFilters;
 
         public RequestExecutionModule(
             IClusterProvider clusterProvider,
@@ -29,7 +29,7 @@ namespace Vostok.Clusterclient.Core.Modules
             IReplicaStorageProvider storageProvider,
             IRequestSenderInternal requestSender,
             IClusterResultStatusSelector resultStatusSelector,
-            List<IReplicaFilter> replicaFilters)
+            List<IReplicaFilter> replicasFilters)
         {
             this.clusterProvider = clusterProvider;
             this.replicaOrdering = replicaOrdering;
@@ -37,7 +37,7 @@ namespace Vostok.Clusterclient.Core.Modules
             this.storageProvider = storageProvider;
             this.requestSender = requestSender;
             this.resultStatusSelector = resultStatusSelector;
-            this.replicaFilters = replicaFilters;
+            this.replicasFilters = replicasFilters;
         }
 
         public async Task<ClusterResult> ExecuteAsync(IRequestContext context, Func<IRequestContext, Task<ClusterResult>> next)
@@ -49,7 +49,7 @@ namespace Vostok.Clusterclient.Core.Modules
                 return ClusterResult.ReplicasNotFound(context.Request);
             }
 
-            if (replicaFilters.Count > 0)
+            if (replicasFilters.Count > 0)
             {
                 replicas = FilterReplicas(replicas, context).ToList();
                 if (replicas.Count == 0)
@@ -88,7 +88,7 @@ namespace Vostok.Clusterclient.Core.Modules
         }
 
         private IEnumerable<Uri> FilterReplicas(IEnumerable<Uri> replicas, IRequestContext context) 
-            => replicaFilters.Aggregate(replicas, (urls, replicaFilter) => replicaFilter.Filter(urls, context));
+            => replicasFilters.Aggregate(replicas, (urls, replicaFilter) => replicaFilter.Filter(urls, context));
 
         #region Logging
 
