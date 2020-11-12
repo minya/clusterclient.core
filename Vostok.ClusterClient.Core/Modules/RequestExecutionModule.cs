@@ -20,7 +20,7 @@ namespace Vostok.Clusterclient.Core.Modules
         private readonly IReplicaStorageProvider storageProvider;
         private readonly IRequestSenderInternal requestSender;
         private readonly IClusterResultStatusSelector resultStatusSelector;
-        private readonly List<IReplicaFilter> replicasFilters;
+        private readonly List<IReplicasFilter> replicasFilters;
 
         public RequestExecutionModule(
             IClusterProvider clusterProvider,
@@ -29,7 +29,7 @@ namespace Vostok.Clusterclient.Core.Modules
             IReplicaStorageProvider storageProvider,
             IRequestSenderInternal requestSender,
             IClusterResultStatusSelector resultStatusSelector,
-            List<IReplicaFilter> replicasFilters)
+            List<IReplicasFilter> replicasFilters)
         {
             this.clusterProvider = clusterProvider;
             this.replicaOrdering = replicaOrdering;
