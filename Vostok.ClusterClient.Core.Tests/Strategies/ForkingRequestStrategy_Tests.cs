@@ -389,6 +389,75 @@ namespace Vostok.Clusterclient.Core.Tests.Strategies
             sentRequests[4].Headers?[HeaderNames.ConcurrencyLevel].Should().Be("3");
         }
 
+        [Test]
+        public void Should_wait_other_forks_if_accepted_and_has_AcceptIfNoOtherRequests_header()
+        {
+            var sendTask = strategy.SendAsync(request, parameters, sender, Budget.Infinite, replicas, replicas.Length, token);
+
+            CompleteForkingDelay();
+            CompleteForkingDelay();
+
+            var conditionHeader = Headers.Empty.Set(HeaderNames.AcceptIfNoOtherRequests, "true");
+            CompleteRequest(replicas[0], ResponseVerdict.Accept, conditionHeader);
+            CompleteRequest(replicas[1], ResponseVerdict.Accept, conditionHeader);
+            CompleteRequest(replicas[2], ResponseVerdict.Accept, conditionHeader);
+
+            sendTask.GetAwaiter().GetResult();
+
+            sentRequests.Should().HaveCount(3);
+        }
+
+        [Test]
+        public void Should_accept_if_no_other_forks_and_has_AcceptIfNoOtherRequests_header()
+        {
+            var sendTask = strategy.SendAsync(request, parameters, sender, Budget.Infinite, replicas, replicas.Length, token);
+
+            var conditionHeader = Headers.Empty.Set(HeaderNames.AcceptIfNoOtherRequests, "true");
+            CompleteRequest(replicas[0], ResponseVerdict.Accept, conditionHeader);
+
+            sendTask.GetAwaiter().GetResult();
+
+            sentRequests.Should().HaveCount(1);
+        }
+
+        [Test]
+        public void Should_not_respect_AcceptIfNoOtherRequests_header_in_rejected_responses()
+        {
+            var sendTask = strategy.SendAsync(request, parameters, sender, Budget.Infinite, replicas, replicas.Length, token);
+
+            CompleteForkingDelay();
+            CompleteForkingDelay();
+
+            var conditionHeader = Headers.Empty.Set(HeaderNames.AcceptIfNoOtherRequests, "true");
+            CompleteRequest(replicas[1], ResponseVerdict.Reject, conditionHeader);
+            CompleteRequest(replicas[2], ResponseVerdict.Reject, conditionHeader);
+            CompleteRequest(replicas[3], ResponseVerdict.Accept);
+
+            sendTask.GetAwaiter().GetResult();
+
+            sentRequests.Should().HaveCount(5);
+        }
+
+        [Test]
+        public void Should_wait_all_forks_and_accept_after_rejecting_when_all_responses_have_AcceptIfNoOtherRequests_header()
+        {
+            var sendTask = strategy.SendAsync(request, parameters, sender, Budget.Infinite, replicas, replicas.Length, token);
+
+            CompleteForkingDelay();
+            CompleteForkingDelay();
+
+            var conditionHeader = Headers.Empty.Set(HeaderNames.AcceptIfNoOtherRequests, "true");
+            CompleteRequest(replicas[1], ResponseVerdict.Reject, conditionHeader);
+            CompleteRequest(replicas[2], ResponseVerdict.Reject, conditionHeader);
+            CompleteRequest(replicas[3], ResponseVerdict.Accept, conditionHeader);
+            CompleteRequest(replicas[4], ResponseVerdict.Accept, conditionHeader);
+            CompleteRequest(replicas[0], ResponseVerdict.Accept, conditionHeader);
+
+            sendTask.GetAwaiter().GetResult();
+
+            sentRequests.Should().HaveCount(5);
+        }
+
         private void SetupDelaysPlanner()
         {
             delaysPlanner
@@ -409,9 +478,9 @@ namespace Vostok.Clusterclient.Core.Tests.Strategies
                 .Returns(first, next);
         }
 
-        private void CompleteRequest(Uri replica, ResponseVerdict verdict)
+        private void CompleteRequest(Uri replica, ResponseVerdict verdict, Headers headers = null)
         {
-            resultSources[replica].TrySetResult(new ReplicaResult(replica, new Response(ResponseCode.Ok), verdict, TimeSpan.Zero));
+            resultSources[replica].TrySetResult(new ReplicaResult(replica, new Response(ResponseCode.Ok, headers: headers), verdict, TimeSpan.Zero));
         }
 
         private void CompleteForkingDelay()

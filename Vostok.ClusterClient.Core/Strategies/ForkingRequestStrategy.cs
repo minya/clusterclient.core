@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
@@ -107,19 +108,32 @@ namespace Vostok.Clusterclient.Core.Strategies
 
         private static async Task<bool> WaitForAcceptedResultAsync(List<Task> currentTasks)
         {
-            var completedTask = await Task.WhenAny(currentTasks).ConfigureAwait(false);
+            while (true)
+            {
+                var completedTask = await Task.WhenAny(currentTasks).ConfigureAwait(false);
 
-            currentTasks.Remove(completedTask);
+                currentTasks.Remove(completedTask);
 
-            var resultTask = completedTask as Task<ReplicaResult>;
-            if (resultTask == null)
-                return false;
+                var resultTask = completedTask as Task<ReplicaResult>;
+                if (resultTask == null)
+                    return false;
 
-            currentTasks.RemoveAll(task => !(task is Task<ReplicaResult>));
+                currentTasks.RemoveAll(task => !(task is Task<ReplicaResult>));
 
-            var result = await resultTask.ConfigureAwait(false);
+                var result = await resultTask.ConfigureAwait(false);
 
-            return result.Verdict == ResponseVerdict.Accept;
+                var accepted = result.Verdict == ResponseVerdict.Accept;
+
+                if (accepted && result.Response.Headers[HeaderNames.AcceptIfNoOtherRequests] != null)
+                {
+                    var currentRequests = currentTasks.Count(x => x is Task<ReplicaResult>);
+                    if (currentRequests == 0)
+                        return true;
+                    continue;
+                }
+
+                return accepted;
+            }
         }
 
         private void LaunchRequest(List<Task> currentTasks, Request request, IRequestTimeBudget budget, IRequestSender sender, IEnumerator<Uri> replicasEnumerator, TimeSpan? connectionTimeout, CancellationToken cancellationToken)

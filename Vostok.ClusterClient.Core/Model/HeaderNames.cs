@@ -109,5 +109,7 @@ namespace Vostok.Clusterclient.Core.Model
         /// A custom header utilized by <see cref="ForkingRequestStrategy"/> to denote its current parallelism level.
         /// </summary>
         public const string ConcurrencyLevel = "Concurrency-Level";
+
+        public const string AcceptIfNoOtherRequests = "AcceptIfNoOtherRequests";
     }
 }
